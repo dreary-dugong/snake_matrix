@@ -1,6 +1,19 @@
 #include <stdio.h> //We need NULL for the snake's head segment
 #include <Adafruit_IS31FL3731.h> //LED matrix library
 
+//a segment of our linked-list snake
+struct Segment{
+  int x;
+  int y;
+  struct Segment *next;  //pointer to next segment
+};
+
+//just a point but it will represent food
+struct Food{
+  int x;
+  int y;
+};
+
 //input pins to control direction
 const int RIGHT_PIN = 6;
 const int LEFT_PIN = 7;
@@ -13,6 +26,7 @@ int snakeLength;
 Segment head;
 Segment tail;
 Food currFood = {0,0};
+bool gameOver = false;
 
 void setup() {
   //initialize our matrix. We assume this won't fail. 
@@ -33,35 +47,49 @@ void setup() {
 }
 
 void loop() {
-  
-  left = digitalRead(LEFT_PIN) == HIGH;
-  right = digitalRead(RIGHT_PIN) == HIGH;
-
-  Segment newhead;
-  
-  if(left and not right){
-    newhead = {head.x-1, head.y, &head}
-  } else if(right and not left){
-    newhead = {head.x+1, head.y, &head}
-  } else if(right and left){
-    newhead = {head.x, head.y-1, &head}
+  if(gameOver){
+    gameOverDisp();
   } else {
-    newhead = {head.x, head.y+1, &head}
-  }
+  
+    bool left = digitalRead(LEFT_PIN) == HIGH;
+    bool right = digitalRead(RIGHT_PIN) == HIGH;
 
-  head = newhead;
+    Segment newhead;
+  
+    //new head in the new direction
+    if(left and not right){
+      newhead = {head.x-1, head.y, &head};
+    } else if(right and not left){
+      newhead = {head.x+1, head.y, &head};
+    } else if(right and left){
+      newhead = {head.x, head.y-1, &head};
+    } else {
+      newhead = {head.x, head.y+1, &head};
+    }
+
+    head = newhead;
    
-  if (not(head.x == currFood.x and head.y == currFood.y)){
-    tail = *tail.next;
-  } else {
-    snakeLength += 1;
-    createFood();
-  }
-  
-  lightSnake();
-  delay(500);
+    if isCollision(){
+      gameOver = true;
+      continue;
+    }
     
+    //if the new head is on food, don't decrease length
+    if (not(head.x == currFood.x and head.y == currFood.y)){
+      tail = *tail.next;
+    } else {
+      snakeLength += 1;
+      createFood();
+    }
   
+    lightSnake();
+    delay(500);
+  }
+}
+
+void gameOverDisp(){
+  matrix.clear();
+  delay(10000);
 }
 
 void lightSnake(){
@@ -112,21 +140,9 @@ void isCollision(){
     if(currSeg.x == head.x and currSeg.y == head.y){
        return true;
     }
-    currSeg = &currSeg.next;
+    currSeg = *currSeg.next;
   }
 
   return false;
 }
 
-//a segment of our linked-list snake
-struct Segment{
-  int x;
-  int y;
-  *Segment next;  //pointer to next segment
-};
-
-//just a point but it will represent food
-struct Food{
-  int x;
-  int y;
-};
