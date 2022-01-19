@@ -1,14 +1,18 @@
 #include <stdio.h> //We need NULL for the snake's head segment
-#include <Adafruit_IS31FL3731.h>
+#include <Adafruit_IS31FL3731.h> //LED matrix library
+
+//input pins to control direction
+const int RIGHT_PIN = 6;
+const int LEFT_PIN = 7;
 
 //our LED matrix
 Adafruit_IS31FL3731 matrix = Adafruit_IS31FL3731();
 
 //game variables
 int snakeLength;
-struct Segment head;
-struct Segment tail;
-struct Food currFood = {0,0};
+Segment head;
+Segment tail;
+Food currFood = {0,0};
 
 void setup() {
   //initialize our matrix. We assume this won't fail. 
@@ -20,7 +24,7 @@ void setup() {
   */
   //initial snake
   head = {6, 5, NULL};
-  struct Segment mid = {5, 5, &head};
+  Segment mid = {5, 5, &head};
   tail = {4, 5, &mid};
   lightSnake();
   
@@ -29,16 +33,44 @@ void setup() {
 }
 
 void loop() {
+  
+  left = digitalRead(LEFT_PIN) == HIGH;
+  right = digitalRead(RIGHT_PIN) == HIGH;
+
+  Segment newhead;
+  
+  if(left and not right){
+    newhead = {head.x-1, head.y, &head}
+  } else if(right and not left){
+    newhead = {head.x+1, head.y, &head}
+  } else if(right and left){
+    newhead = {head.x, head.y-1, &head}
+  } else {
+    newhead = {head.x, head.y+1, &head}
+  }
+
+  head = newhead;
    
+  if (not(head.x == currFood.x and head.y == currFood.y)){
+    tail = *tail.next;
+  } else {
+    snakeLength += 1;
+    createFood();
+  }
+  
+  lightSnake();
+  delay(500);
+    
+  
 }
 
 void lightSnake(){
   
   //use full brightness for now until we're sure it works
-  struct Segment currSeg = tail;
+  Segment currSeg = tail;
   for(int i=0; i<snakeLength; i++){
     matrix.drawPixel(currSeg.x, currSeg.y, 255);
-    currSeg = &currSeg.next;
+    currSeg = *currSeg.next;
   }
   
 }
@@ -46,6 +78,25 @@ void lightSnake(){
 //randomly choose a pixel that isn't in the snake
 //asign that to food and light it. No blinking yet. 
 void createFood(){
+  bool goodPoint = false;
+  int x;
+  int y;
+  while(not goodPoint){
+    x = random(0, 9);
+    y = random(0, 16);
+    goodPoint = true;
+    Segment currSegment = tail;
+    for(int i=0; i<snakeLength; i++){  
+      if(currSegment.x == x and currSegment.y == y){
+        goodPoint = false;
+      }
+    currSegment = *currSegment.next; 
+    }
+  }     
+  
+  matrix.drawPixel(currFood.x, currFood.y, 0);
+  currFood = {x,y};
+  matrix.drawPixel(currFood.x, currFood.y, 255);
 
 }
 
@@ -55,7 +106,7 @@ void isCollision(){
     return true;
   }
  
-  struct Segment currSeg = tail; 
+  Segment currSeg = tail; 
 
   for(int i=0; i<snakeLength; i++){
     if(currSeg.x == head.x and currSeg.y == head.y){
@@ -71,11 +122,11 @@ void isCollision(){
 struct Segment{
   int x;
   int y;
-  *struct Segment next;  //pointer to next segment
-}
+  *Segment next;  //pointer to next segment
+};
 
 //just a point but it will represent food
 struct Food{
   int x;
   int y;
-}
+};
