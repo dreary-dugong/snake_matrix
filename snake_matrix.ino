@@ -1,4 +1,5 @@
 #include <stdio.h> //We need NULL for the snake's head segment
+#include <stdlib.h> //memory allocation.
 #include <Adafruit_IS31FL3731.h> //LED matrix library
 
 //a segment of our linked-list snake
@@ -23,9 +24,9 @@ Adafruit_IS31FL3731 matrix = Adafruit_IS31FL3731();
 
 //game variables
 int snakeLength;
-Segment *head_ptr;
-Segment *tail_ptr;
-Food currFood = {0,0};
+struct Segment *head_ptr;
+struct Segment *tail_ptr;
+struct Food currFood = {0,0};
 bool gameOver = false;
 
 void setup() {
@@ -37,9 +38,9 @@ void setup() {
     Game setup
   */
   //initial snake
-  Segment head = {6, 5, NULL};
-  Segment mid = {5, 5, &head};
-  Segment tail = {4, 5, &mid};
+  struct Segment head = {6, 5, NULL};
+  struct Segment mid = {5, 5, &head};
+  struct Segment tail = {4, 5, &mid};
   head_ptr = &head;
   tail_ptr = &tail;
 
@@ -97,7 +98,7 @@ void gameOverDisp(){
 void lightSnake(){
   
   //use full brightness for now until we're sure it works
-  Segment *currSeg = tail_ptr;
+  struct Segment *currSeg = tail_ptr;
   for(int i=0; i<snakeLength; i++){
     matrix.drawPixel(currSeg->x, currSeg->y, 255);
     currSeg = currSeg->next;
@@ -117,7 +118,7 @@ void createFood(){
     x = random(0, 9);
     y = random(0, 16);
     goodPoint = true;
-    Segment *currSegment = tail_ptr;
+    struct Segment *currSegment = tail_ptr;
     for(int i=0; i<snakeLength; i++){  
       if(currSegment->x == x and currSegment->y == y){
         goodPoint = false;
@@ -138,7 +139,7 @@ bool isCollision(){
     return true;
   }
  
-  Segment *currSeg = tail_ptr; 
+  struct Segment *currSeg = tail_ptr; 
 
   for(int i=0; i<snakeLength; i++){
     if(currSeg->x == head_ptr->x and currSeg->y == head_ptr->y){
