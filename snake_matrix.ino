@@ -45,7 +45,12 @@ void setup() {
 
   //initialize our matrix. We assume this won't fail. 
   matrix.begin();
-  matrix.setRotation(3); //this may need to be changed
+
+  //matrix settings
+  matrix.setRotation(3); 
+  matrix.setTextSize(2);
+  matrix.setTextWrap(false);
+  matrix.setTextColor(25);
 
   /*
     Game setup
@@ -81,8 +86,7 @@ void setup() {
 
 void loop() {
   if(gameOver){
-    gameOverDisp();
-    Serial.println("Game is over, displaying game over screen.");
+    matrix.clear();
   } else {
   
     int newX;
@@ -123,6 +127,7 @@ void loop() {
    
     if(isCollision()){
       gameOver = true;
+      gameOverDisp();
       Serial.println("Collision! Game over!");
     }
     
@@ -145,8 +150,12 @@ void loop() {
 }
 
 void gameOverDisp(){
-  matrix.clear();
-  matrix.print("GG");
+  for(int x=0; x>=-255; x--){
+    matrix.clear();
+    matrix.setCursor(x, 0); 
+    matrix.print("GAMEOVER");
+    delay(50);
+  }
   delay(10000);
 }
 
