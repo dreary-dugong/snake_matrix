@@ -39,6 +39,9 @@ void setup() {
   //pinmodes
   pinMode(JOYSTICK_X, INPUT);
   pinMode(JOYSTICK_Y, INPUT);
+
+  //set seed
+  randomSeed(analogRead(A5)); //A5 must be unused
   
   //serial for debugging
   Serial.begin(9600);
@@ -86,7 +89,7 @@ void setup() {
 
 void loop() {
   if(gameOver){
-    matrix.clear();
+    delay(10000);
   } else {
   
     int newX;
