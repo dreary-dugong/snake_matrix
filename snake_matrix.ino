@@ -30,9 +30,9 @@ int snakeLength; //length of the snake
 struct Segment *head_ptr; //head of the snake
 struct Segment *tail_ptr; //tail of the snake
 struct Food currFood = {0,0}; //current food
-enum direction currDirection = up; //snake direction
+enum direction currDirection = right; //snake direction
 bool gameOver = false; //has the game ended
-int moveDelay = 2000; //time between snake moves
+int moveDelay = 1500; //time between snake moves
 
 void setup() {
 
@@ -85,6 +85,8 @@ void setup() {
   createFood();
   Serial.println("Food created and lit.");
 
+  gameDelay(moveDelay);
+
 }
 
 void loop() {
@@ -115,6 +117,7 @@ void loop() {
       Serial.println("\nSnake moving down!");
     }
 
+    //replce the old head with the newone
     struct Segment *newHead_ptr = (Segment*) malloc(sizeof(struct Segment));
     newHead_ptr->x = newX;
     newHead_ptr->y = newY;
@@ -128,11 +131,6 @@ void loop() {
     Serial.println(head_ptr->y);
     
    
-    if(isCollision()){
-      gameOver = true;
-      gameOverDisp();
-      Serial.println("Collision! Game over!");
-    }
     
     //if the new head is on food, don't decrease length
     if (head_ptr->x == currFood.x and head_ptr->y == currFood.y){
@@ -141,6 +139,7 @@ void loop() {
       moveDelay = max(moveDelay, 400);
       createFood();
     } else {
+      //otherwise, do deacrease length
       matrix.drawPixel(tail_ptr->x, tail_ptr->y, 0);
       struct Segment *newTail_ptr = tail_ptr->next;
       free(tail_ptr);
@@ -148,20 +147,39 @@ void loop() {
     }
   
     lightSnake();
+
+    if(isCollision()){
+      gameOver = true;
+      gameOverDisp();
+      Serial.println("Collision! Game over!");
+    }
+   
+   if(not gameOver){ 
     gameDelay(moveDelay);
+   }
   }
 }
 
+//flash the game over screen
 void gameOverDisp(){
-  for(int x=0; x>=-255; x--){
-    matrix.clear();
-    matrix.setCursor(x, 0); 
-    matrix.print("GAMEOVER");
-    delay(50);
-  }
+  flashText("GAMEOVER");
+  flashText("SCORE: ");
+  flashText(String(snakeLength-3));
+  matrix.clear();
   delay(10000);
 }
 
+//write scrolling text to the screen
+void flashText(String text){
+  for(int x=10; x>= -100; x--){
+    matrix.clear();
+    matrix.setCursor(x, 0);
+    matrix.print(text);
+    delay(50);
+  }
+  matrix.clear();
+}
+    
 //make the food blink while we're waiting
 void gameDelay(int ms){
   while(ms > 0){
