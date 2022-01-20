@@ -26,12 +26,13 @@ const int JOYSTICK_Y = A3;
 Adafruit_IS31FL3731 matrix = Adafruit_IS31FL3731();
 
 //game variables
-int snakeLength;
-struct Segment *head_ptr;
-struct Segment *tail_ptr;
-struct Food currFood = {0,0};
-enum direction currDirection = up;
-bool gameOver = false;
+int snakeLength; //length of the snake
+struct Segment *head_ptr; //head of the snake
+struct Segment *tail_ptr; //tail of the snake
+struct Food currFood = {0,0}; //current food
+enum direction currDirection = up; //snake direction
+bool gameOver = false; //has the game ended
+int moveDelay = 2000; //time between snake moves
 
 void setup() {
 
@@ -87,16 +88,6 @@ void loop() {
     int newX;
     int newY;
 
-    //check for change in direction
-    if(analogRead(JOYSTICK_Y) < 400){
-      currDirection = left;
-    } else if(analogRead(JOYSTICK_Y) > 600){
-      currDirection = right;
-    } else if(analogRead(JOYSTICK_X) < 400){
-      currDirection = down;
-    } else if(analogRead(JOYSTICK_X) > 600){
-      currDirection = up;
-    }
  
     //new head in the new direction
     if(currDirection == left){
@@ -138,6 +129,8 @@ void loop() {
     //if the new head is on food, don't decrease length
     if (head_ptr->x == currFood.x and head_ptr->y == currFood.y){
       snakeLength += 1;
+      moveDelay -= 250;
+      moveDelay = max(moveDelay, 400);
       createFood();
     } else {
       matrix.drawPixel(tail_ptr->x, tail_ptr->y, 0);
@@ -147,7 +140,7 @@ void loop() {
     }
   
     lightSnake();
-    gameDelay(2000);
+    gameDelay(moveDelay);
   }
 }
 
@@ -161,17 +154,41 @@ void gameOverDisp(){
 void gameDelay(int ms){
   while(ms > 0){
     matrix.drawPixel(currFood.x, currFood.y, 0);
-    delay(200);
+    pollDelay(200);
     ms -= 200;
     matrix.drawPixel(currFood.x, currFood.y, 255);
-    delay(300);
+    pollDelay(300);
     ms -= 300;
   }
 }
 
+//poll controller input during the wait
+void pollDelay(int ms){
+  while(ms > 0){
+    updateDirection();
+    delay(10);
+    ms -= 10;
+  }
+}
+
+//take control input and change direction
+void updateDirection(){
+
+  if(analogRead(JOYSTICK_Y) < 400){
+    currDirection = left;
+  } else if(analogRead(JOYSTICK_Y) > 600){
+    currDirection = right;
+  } else if(analogRead(JOYSTICK_X) < 400){
+    currDirection = down;
+  } else if(analogRead(JOYSTICK_X) > 600){
+    currDirection = up;
+  }
+
+}
+
+//light the tail dimly, the head brightly
 void lightSnake(){
   
-  //light the tail dimly, the head brightly
   struct Segment *currSeg = tail_ptr;
   for(int i=0; i<snakeLength; i++){
     matrix.drawPixel(currSeg->x, currSeg->y, (i+1)*(255/snakeLength));
