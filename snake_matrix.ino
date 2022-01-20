@@ -30,51 +30,93 @@ struct Food currFood = {0,0};
 bool gameOver = false;
 
 void setup() {
+  
+  //serial for debugging
+  Serial.begin(9600);
+
   //initialize our matrix. We assume this won't fail. 
   matrix.begin();
-  matrix.setRotation(1); //this may need to be changed
+  matrix.setRotation(3); //this may need to be changed
 
   /*
     Game setup
   */
   //initial snake
-  struct Segment head = {6, 5, NULL};
-  struct Segment mid = {5, 5, &head};
-  struct Segment tail = {4, 5, &mid};
-  head_ptr = &head;
-  tail_ptr = &tail;
+  head_ptr = (Segment*) malloc(sizeof(struct Segment));
+  head_ptr->x = 6;
+  head_ptr->y = 5;
+  head_ptr->next = NULL;
+  Serial.println("Head created and pointer stored.");
+
+  struct Segment *mid_ptr = (Segment*) malloc(sizeof(struct Segment));
+  mid_ptr->x = 5;
+  mid_ptr->y = 5;
+  mid_ptr->next = head_ptr; 
+  Serial.println("Mid created.");
+
+  tail_ptr = (Segment*) malloc(sizeof(struct Segment));
+  tail_ptr->x = 4;
+  tail_ptr->y = 5;
+  tail_ptr->next = mid_ptr;
+  Serial.println("Tail created and pointer stored.");
+
+  snakeLength = 3;
 
   lightSnake();
+  Serial.println("Snake lit.");
+
   createFood();
+  Serial.println("Food created and lit.");
 
 }
 
 void loop() {
   if(gameOver){
     gameOverDisp();
+    Serial.println("Game is over, displaying game over screen.");
   } else {
   
     bool left = digitalRead(LEFT_PIN) == HIGH;
     bool right = digitalRead(RIGHT_PIN) == HIGH;
 
-    Segment newhead;
-  
+    int newX;
+    int newY;
+ 
     //new head in the new direction
     if(left and not right){
-      newhead = {head_ptr->x-1, head_ptr->y, NULL};
+      newX = head_ptr->x-1;
+      newY = head_ptr->y;
+      Serial.println("\nSnake moving left!");
     } else if(right and not left){
-      newhead = {head_ptr->x+1, head_ptr->y, NULL};
+      newX = head_ptr->x+1;
+      newY = head_ptr->y;
+      Serial.println("\nSnake moving right!");
     } else if(right and left){
-      newhead = {head_ptr->x, head_ptr->y-1, NULL};
+      newX = head_ptr->x;
+      newY = head_ptr->y-1;
+      Serial.println("\nSnake moving up!");
     } else {
-      newhead = {head_ptr->x, head_ptr->y+1, NULL};
+      newX = head_ptr->x;
+      newY = head_ptr->y+1;
+      Serial.println("\nSnake moving down!");
     }
 
-    head_ptr->next = &newhead;
-    head_ptr = &newhead;
+    struct Segment *newHead_ptr = (Segment*) malloc(sizeof(struct Segment));
+    newHead_ptr->x = newX;
+    newHead_ptr->y = newY;
+    newHead_ptr->next = NULL;
+
+    head_ptr->next = newHead_ptr;
+    head_ptr = newHead_ptr;
+
+    Serial.println("Snake has moved. New head at: ");
+    Serial.println(head_ptr->x);
+    Serial.println(head_ptr->y);
+    
    
     if(isCollision()){
       gameOver = true;
+      Serial.println("Collision! Game over!");
     }
     
     //if the new head is on food, don't decrease length
@@ -82,25 +124,41 @@ void loop() {
       snakeLength += 1;
       createFood();
     } else {
-      tail_ptr = tail_ptr->next;
+      matrix.drawPixel(tail_ptr->x, tail_ptr->y, 0);
+      struct Segment *newTail_ptr = tail_ptr->next;
+      free(tail_ptr);
+      tail_ptr = newTail_ptr;
     }
   
     lightSnake();
-    delay(1000);
+    gameDelay(2000);
   }
 }
 
 void gameOverDisp(){
   matrix.clear();
+  matrix.print("GG");
   delay(10000);
+}
+
+//make the food blink while we're waiting
+void gameDelay(int ms){
+  while(ms > 0){
+    matrix.drawPixel(currFood.x, currFood.y, 0);
+    delay(200);
+    ms -= 200;
+    matrix.drawPixel(currFood.x, currFood.y, 255);
+    delay(300);
+    ms -= 300;
+  }
 }
 
 void lightSnake(){
   
-  //use full brightness for now until we're sure it works
+  //light the tail dimly, the head brightly
   struct Segment *currSeg = tail_ptr;
   for(int i=0; i<snakeLength; i++){
-    matrix.drawPixel(currSeg->x, currSeg->y, 255);
+    matrix.drawPixel(currSeg->x, currSeg->y, (i+1)*(255/snakeLength));
     currSeg = currSeg->next;
   }
   
@@ -125,6 +183,10 @@ void createFood(){
       }
     currSegment = currSegment->next; 
     }
+
+  Serial.println("New food created! Location: ");
+  Serial.print(x);
+  Serial.print(y);
   }     
   
   matrix.drawPixel(currFood.x, currFood.y, 0);
@@ -141,7 +203,7 @@ bool isCollision(){
  
   struct Segment *currSeg = tail_ptr; 
 
-  for(int i=0; i<snakeLength; i++){
+  for(int i=0; i<snakeLength-1; i++){
     if(currSeg->x == head_ptr->x and currSeg->y == head_ptr->y){
        return true;
     }
