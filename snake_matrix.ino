@@ -15,9 +15,12 @@ struct Food{
   int y;
 };
 
+//used for choosing where the snake moves
+enum direction{up, down, left, right};
+
 //input pins to control direction
-const int RIGHT_PIN = 7;
-const int LEFT_PIN = 6;
+const int JOYSTICK_X = A2;
+const int JOYSTICK_Y = A3;
 
 //our LED matrix
 Adafruit_IS31FL3731 matrix = Adafruit_IS31FL3731();
@@ -27,9 +30,14 @@ int snakeLength;
 struct Segment *head_ptr;
 struct Segment *tail_ptr;
 struct Food currFood = {0,0};
+enum direction currDirection = up;
 bool gameOver = false;
 
 void setup() {
+
+  //pinmodes
+  pinMode(JOYSTICK_X, INPUT);
+  pinMode(JOYSTICK_Y, INPUT);
   
   //serial for debugging
   Serial.begin(9600);
@@ -76,26 +84,34 @@ void loop() {
     Serial.println("Game is over, displaying game over screen.");
   } else {
   
-    bool left = digitalRead(LEFT_PIN) == HIGH;
-    bool right = digitalRead(RIGHT_PIN) == HIGH;
-
     int newX;
     int newY;
+
+    //check for change in direction
+    if(analogRead(JOYSTICK_Y) < 400){
+      currDirection = left;
+    } else if(analogRead(JOYSTICK_Y) > 600){
+      currDirection = right;
+    } else if(analogRead(JOYSTICK_X) < 400){
+      currDirection = down;
+    } else if(analogRead(JOYSTICK_X) > 600){
+      currDirection = up;
+    }
  
     //new head in the new direction
-    if(left and not right){
+    if(currDirection == left){
       newX = head_ptr->x-1;
       newY = head_ptr->y;
       Serial.println("\nSnake moving left!");
-    } else if(right and not left){
+    } else if(currDirection == right){
       newX = head_ptr->x+1;
       newY = head_ptr->y;
       Serial.println("\nSnake moving right!");
-    } else if(right and left){
+    } else if(currDirection==up){
       newX = head_ptr->x;
       newY = head_ptr->y-1;
       Serial.println("\nSnake moving up!");
-    } else {
+    } else if(currDirection==down){
       newX = head_ptr->x;
       newY = head_ptr->y+1;
       Serial.println("\nSnake moving down!");
